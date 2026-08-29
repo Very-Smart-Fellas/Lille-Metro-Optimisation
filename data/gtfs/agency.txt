@@ -1,0 +1,2 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url
+ILE,ILEVIA,http://www.ilevia.fr,Europe/Paris,FR,03.20.40.40.40,https://www.ilevia.fr/fr/27-tarifs
