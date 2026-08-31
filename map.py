@@ -2,6 +2,8 @@ import pandas as pd
 import geopandas as gpd
 from tqdm import tqdm
 import json
+from shapely.geometry import LineString
+from branca.element import Element
 
 
 # Data filtering
@@ -85,3 +87,20 @@ def get_data():
 
 # Data mapping
 
+df = pd.DataFrame(data)
+
+gdf_stops = gpd.GeoDataFrame(
+    df,
+    geometry=gpd.points_from_xy(df.stop_lon, df.stop_lat),
+    crs="EPSG:4326"
+)
+
+m = gdf_stops.explore(
+    color="blue",
+    marker_kwds=dict(radius=6),
+    tooltip=["stop_name", "stop_id"],
+    popup=True,
+    tiles="OpenStreetMap",
+)
+
+m.save("interactive_stops_map.html")
