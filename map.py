@@ -4,6 +4,7 @@ from tqdm import tqdm
 import json
 from shapely.geometry import LineString
 from branca.element import Element
+import folium
 
 
 # Data filtering
@@ -78,6 +79,54 @@ except:
     with open("data/json/filtered_stops.json", "w") as file:
         json.dump(stops, file)
 
+me1 = {
+    "stop_id": [],
+    "stop_name": [],
+    "stop_lat": [],
+    "stop_lon": [],
+    "route_type": [],
+    "route_short_name": []
+    }
+me2 = {
+    "stop_id": [],
+    "stop_name": [],
+    "stop_lat": [],
+    "stop_lon": [],
+    "route_type": [],
+    "route_short_name": []
+    }
+tram = {
+    "stop_id": [],
+    "stop_name": [],
+    "stop_lat": [],
+    "stop_lon": [],
+    "route_type": [],
+    "route_short_name": []
+    }
+
+for i in range(len(data["stop_id"])):
+    if data["route_short_name"][i] == "ME1":
+        me1["stop_id"].append(data["stop_id"][i])
+        me1["stop_name"].append(data["stop_name"][i])
+        me1["stop_lat"].append(data["stop_lat"][i])
+        me1["stop_lon"].append(data["stop_lon"][i])
+        me1["route_type"].append(data["route_type"][i])
+        me1["route_short_name"].append(data["route_short_name"][i])
+    elif data["route_short_name"][i] == "ME2":
+        me2["stop_id"].append(data["stop_id"][i])
+        me2["stop_name"].append(data["stop_name"][i])
+        me2["stop_lat"].append(data["stop_lat"][i])
+        me2["stop_lon"].append(data["stop_lon"][i])
+        me2["route_type"].append(data["route_type"][i])
+        me2["route_short_name"].append(data["route_short_name"][i])
+    elif data["route_short_name"][i] == "TRAM":
+        tram["stop_id"].append(data["stop_id"][i])
+        tram["stop_name"].append(data["stop_name"][i])
+        tram["stop_lat"].append(data["stop_lat"][i])
+        tram["stop_lon"].append(data["stop_lon"][i])
+        tram["route_type"].append(data["route_type"][i])
+        tram["route_short_name"].append(data["route_short_name"][i])
+
 def get_data():
     print(f"Number of routes: {len(data["routes"])}")
     print(f"Number of trips: {len(data["trips"])}")
@@ -87,20 +136,55 @@ def get_data():
 
 # Data mapping
 
-df = pd.DataFrame(data)
+me1df = pd.DataFrame(me1)
+me2df = pd.DataFrame(me2)
+tramdf = pd.DataFrame(tram)
 
-gdf_stops = gpd.GeoDataFrame(
-    df,
-    geometry=gpd.points_from_xy(df.stop_lon, df.stop_lat),
+me1_stops = gpd.GeoDataFrame(
+    me1df,
+    geometry=gpd.points_from_xy(me1df.stop_lon, me1df.stop_lat),
     crs="EPSG:4326"
 )
 
-m = gdf_stops.explore(
+me2_stops = gpd.GeoDataFrame(
+    me2df,
+    geometry=gpd.points_from_xy(me2df.stop_lon, me2df.stop_lat),
+    crs="EPSG:4326"
+)
+
+tram_stops = gpd.GeoDataFrame(
+    tramdf,
+    geometry=gpd.points_from_xy(tramdf.stop_lon, tramdf.stop_lat),
+    crs="EPSG:4326"
+)
+
+m = me1_stops.explore( # Location values cannot contain NaNs
+    color="yellow",
+    marker_kwds=dict(radius=6),
+    tooltip=["stop_name", "stop_id"],
+    popup=True,
+    tiles="OpenStreetMap",
+    name = "ME1"
+)
+
+me2_stops.explore(
+    m=m,
+    color="red",
+    marker_kwds=dict(radius=6),
+    tooltip=["stop_name", "stop_id"],
+    popup=True,
+    tiles="OpenStreetMap",
+    name = "ME2"
+)
+
+tram_stops.explore(
+    m=m,
     color="blue",
     marker_kwds=dict(radius=6),
     tooltip=["stop_name", "stop_id"],
     popup=True,
     tiles="OpenStreetMap",
+    name = "TRAM"
 )
 
 m.save("interactive_stops_map.html")
