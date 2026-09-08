@@ -2,9 +2,6 @@ import pandas as pd
 import geopandas as gpd
 from tqdm import tqdm
 import json
-from shapely.geometry import LineString
-from branca.element import Element
-import folium
 
 
 # Data filtering
