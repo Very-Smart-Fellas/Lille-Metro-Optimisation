@@ -105,14 +105,14 @@ tram = {
     }
 
 for i in range(len(data["stop_id"])):
-    if data["route_short_name"][i] == "ME1":
+    if data["route_short_name"][i] == "M1":
         me1["stop_id"].append(data["stop_id"][i])
         me1["stop_name"].append(data["stop_name"][i])
         me1["stop_lat"].append(data["stop_lat"][i])
         me1["stop_lon"].append(data["stop_lon"][i])
         me1["route_type"].append(data["route_type"][i])
         me1["route_short_name"].append(data["route_short_name"][i])
-    elif data["route_short_name"][i] == "ME2":
+    elif data["route_short_name"][i] == "M2":
         me2["stop_id"].append(data["stop_id"][i])
         me2["stop_name"].append(data["stop_name"][i])
         me2["stop_lat"].append(data["stop_lat"][i])
@@ -140,6 +140,10 @@ me1df = pd.DataFrame(me1)
 me2df = pd.DataFrame(me2)
 tramdf = pd.DataFrame(tram)
 
+for df in [me1df, me2df, tramdf]:
+    df[['stop_lat', 'stop_lon']] = df[['stop_lat', 'stop_lon']].apply(pd.to_numeric, errors='coerce')
+    df.dropna(subset=['stop_lat', 'stop_lon'], inplace=True)
+
 me1_stops = gpd.GeoDataFrame(
     me1df,
     geometry=gpd.points_from_xy(me1df.stop_lon, me1df.stop_lat),
@@ -158,7 +162,7 @@ tram_stops = gpd.GeoDataFrame(
     crs="EPSG:4326"
 )
 
-m = me1_stops.explore( # Location values cannot contain NaNs
+m = me1_stops.explore(
     color="yellow",
     marker_kwds=dict(radius=6),
     tooltip=["stop_name", "stop_id"],
