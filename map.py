@@ -2,6 +2,8 @@ import pandas as pd
 import geopandas as gpd
 from tqdm import tqdm
 import json
+from shapely.geometry import LineString
+import folium
 
 
 # Data filtering
@@ -30,7 +32,7 @@ except:
     trips = trips[["route_id", "trip_id"]].values.tolist()
     trips = [trip for trip in trips if trip[0] in [route[2] for route in routes]]
 
-    stop_times = stop_times[["trip_id", "stop_id"]].values.tolist()
+    stop_times = stop_times[["trip_id", "stop_id", "stop_sequence"]].values.tolist()
     stop_times = [stop_time for stop_time in stop_times if stop_time[0] in [trip[1] for trip in trips]]
 
     stops = stops[["stop_id", "stop_name", "stop_lat", "stop_lon"]].values.tolist()
@@ -42,7 +44,8 @@ except:
         "stop_lat": [stop[2] for stop in stops],
         "stop_lon": [stop[3] for stop in stops],
         "route_type": [],
-        "route_short_name": []
+        "route_short_name": [],
+        "stop_sequence": [],
     }
 
     for i in tqdm(range(len(stops))):
@@ -55,6 +58,7 @@ except:
                             if trips[k][0] == routes[l][2]:
                                 data["route_type"].append(routes[l][0])
                                 data["route_short_name"].append(routes[l][1])
+                                data["stop_sequence"].append(stop_times[j][2])
                                 found = True
                                 break
                         if found:
@@ -64,6 +68,7 @@ except:
         if not found:
             data["route_type"].append(None)
             data["route_short_name"].append(None)
+            data["stop_sequence"].append(None)
 
     with open("data/json/filtered_data.json", "w") as file:
         json.dump(data, file)
