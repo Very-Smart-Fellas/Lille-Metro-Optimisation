@@ -5,7 +5,6 @@ import json
 from shapely.geometry import LineString
 import folium
 
-
 # Data filtering
 
 try:
@@ -46,6 +45,7 @@ except:
         "route_type": [],
         "route_short_name": [],
         "stop_sequence": [],
+        "trip_id": []
     }
 
     for i in tqdm(range(len(stops))):
@@ -59,6 +59,7 @@ except:
                                 data["route_type"].append(routes[l][0])
                                 data["route_short_name"].append(routes[l][1])
                                 data["stop_sequence"].append(stop_times[j][2])
+                                data["trip_id"].append(trips[k][1])
                                 found = True
                                 break
                         if found:
@@ -87,7 +88,9 @@ me1 = {
     "stop_lat": [],
     "stop_lon": [],
     "route_type": [],
-    "route_short_name": []
+    "route_short_name": [],
+    "stop_sequence": [],
+    "trip_id": []
     }
 me2 = {
     "stop_id": [],
@@ -95,7 +98,9 @@ me2 = {
     "stop_lat": [],
     "stop_lon": [],
     "route_type": [],
-    "route_short_name": []
+    "route_short_name": [],
+    "stop_sequence": [],
+    "trip_id": []
     }
 tram = {
     "stop_id": [],
@@ -103,7 +108,9 @@ tram = {
     "stop_lat": [],
     "stop_lon": [],
     "route_type": [],
-    "route_short_name": []
+    "route_short_name": [],
+    "stop_sequence": [],
+    "trip_id": []
     }
 
 for i in range(len(data["stop_id"])):
@@ -114,6 +121,8 @@ for i in range(len(data["stop_id"])):
         me1["stop_lon"].append(data["stop_lon"][i])
         me1["route_type"].append(data["route_type"][i])
         me1["route_short_name"].append(data["route_short_name"][i])
+        me1["stop_sequence"].append(data["stop_sequence"][i])
+        me1["trip_id"].append(data["trip_id"][i])
     elif data["route_short_name"][i] == "M2":
         me2["stop_id"].append(data["stop_id"][i])
         me2["stop_name"].append(data["stop_name"][i])
@@ -121,6 +130,8 @@ for i in range(len(data["stop_id"])):
         me2["stop_lon"].append(data["stop_lon"][i])
         me2["route_type"].append(data["route_type"][i])
         me2["route_short_name"].append(data["route_short_name"][i])
+        me2["stop_sequence"].append(data["stop_sequence"][i])
+        me2["trip_id"].append(data["trip_id"][i])
     elif data["route_short_name"][i] == "TRAM":
         tram["stop_id"].append(data["stop_id"][i])
         tram["stop_name"].append(data["stop_name"][i])
@@ -128,6 +139,8 @@ for i in range(len(data["stop_id"])):
         tram["stop_lon"].append(data["stop_lon"][i])
         tram["route_type"].append(data["route_type"][i])
         tram["route_short_name"].append(data["route_short_name"][i])
+        tram["stop_sequence"].append(data["stop_sequence"][i])
+        tram["trip_id"].append(data["trip_id"][i])
 
 def get_data():
     print(f"Number of routes: {len(data["routes"])}")
@@ -164,12 +177,16 @@ tram_stops = gpd.GeoDataFrame(
     crs="EPSG:4326"
 )
 
+esri_url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+esri_attr = "Esri"
+
 m = me1_stops.explore(
     color="yellow",
     marker_kwds=dict(radius=6),
-    tooltip=["stop_name", "stop_id"],
+    tooltip=["stop_name", "stop_sequence"],
     popup=True,
-    tiles="OpenStreetMap",
+    tiles=esri_url,
+    attr=esri_attr,
     name = "ME1"
 )
 
@@ -177,9 +194,10 @@ me2_stops.explore(
     m=m,
     color="red",
     marker_kwds=dict(radius=6),
-    tooltip=["stop_name", "stop_id"],
+    tooltip=["stop_name", "stop_sequence"],
     popup=True,
-    tiles="OpenStreetMap",
+    tiles=esri_url,
+    attr=esri_attr,
     name = "ME2"
 )
 
@@ -187,10 +205,41 @@ tram_stops.explore(
     m=m,
     color="blue",
     marker_kwds=dict(radius=6),
-    tooltip=["stop_name", "stop_id"],
+    tooltip=["stop_name", "stop_sequence"],
     popup=True,
-    tiles="OpenStreetMap",
+    tiles=esri_url,
+    attr=esri_attr,
     name = "TRAM"
+)
+
+me1df = me1df[me1df["trip_id"] == me1df["trip_id"].dropna().iloc[0]].sort_values(by="stop_sequence")
+me2df = me2df[me2df["trip_id"] == me2df["trip_id"].dropna().iloc[0]].sort_values(by="stop_sequence")
+tramdf = tramdf[tramdf["trip_id"] == tramdf["trip_id"].dropna().iloc[0]].sort_values(by="stop_sequence")
+
+coords = list(zip(me1df.stop_lon, me1df.stop_lat))
+if len(coords) > 1:
+    me1_line = LineString(coords)
+
+coords = list(zip(me2df.stop_lon, me2df.stop_lat))
+if len(coords) > 1:
+    me2_line = LineString(coords)
+
+coords = list(zip(tramdf.stop_lon, tramdf.stop_lat))
+if len(coords) > 1:
+    tram_line = LineString(coords)
+
+routes_gdf = gpd.GeoDataFrame({
+    'route_name': ['ME1', 'ME2', 'TRAM'],
+    'geometry': [me1_line, me2_line, tram_line]
+}, crs="EPSG:4326")
+
+routes_gdf.explore(
+    m=m,
+    column="route_name",
+    cmap=["yellow", "red", "blue"], # Colors match your point colors
+    style_kwds={'weight': 5},       # Line thickness
+    tooltip=["route_name"],
+    name="Route Lines"
 )
 
 m.save("interactive_stops_map.html")
