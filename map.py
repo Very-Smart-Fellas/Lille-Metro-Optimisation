@@ -2,8 +2,7 @@ import pandas as pd
 import geopandas as gpd
 from tqdm import tqdm
 import json
-from shapely.geometry import LineString
-import folium
+from shapely.geometry import LineString, MultiLineString
 
 # Data filtering
 
@@ -224,9 +223,20 @@ coords = list(zip(me2df.stop_lon, me2df.stop_lat))
 if len(coords) > 1:
     me2_line = LineString(coords)
 
-coords = list(zip(tramdf.stop_lon, tramdf.stop_lat))
-if len(coords) > 1:
-    tram_line = LineString(coords)
+tram_r_id = next(r[2] for r in routes if r[1] == "TRAM")
+tram_trip_ids = [t[1] for t in trips if t[0] == tram_r_id]
+stop_coords = {s[0]: (float(s[3]), float(s[2])) for s in stops}
+
+tram_lines, seen_destinations = [], set()
+for t_id in tram_trip_ids:
+    st_sorted = sorted([st for st in stop_times if st[0] == t_id], key=lambda x: int(x[2]))
+    if st_sorted and st_sorted[-1][1] not in seen_destinations:
+        seen_destinations.add(st_sorted[-1][1])
+        pts = [stop_coords[st[1]] for st in st_sorted if st[1] in stop_coords]
+        if len(pts) > 1:
+            tram_lines.append(LineString(pts))
+
+tram_line = MultiLineString(tram_lines)
 
 routes_gdf = gpd.GeoDataFrame({
     'route_name': ['ME1', 'ME2', 'TRAM'],
